@@ -1,0 +1,88 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<main>
+  <section class="section">
+    <div class="container">
+      <div class="about-hero card">
+        <div class="avatar"><i data-lucide="user-round"></i></div>
+        <div class="about-info">
+          <span class="pill soft"><i data-lucide="id-card"></i> About Developer</span>
+          <h1><%= config.developer.name %></h1>
+          <p class="role"><i data-lucide="briefcase"></i> <%= config.developer.role %></p>
+          <p class="muted"><i data-lucide="map-pin"></i> <%= config.developer.location %></p>
+          <p class="lead">
+            Membangun infrastruktur data dan REST API yang bersih, cepat, serta mudah dirawat.
+            <%= config.name %> lahir dari kebutuhan menyatukan banyak sumber konten ke dalam satu kontrak API yang konsisten.
+          </p>
+          <div class="about-actions">
+            <a class="btn btn-primary" href="mailto:<%= config.developer.email %>"><i data-lucide="mail"></i><span>Email</span></a>
+            <a class="btn btn-outline" href="<%= config.developer.github %>" target="_blank" rel="noopener"><i data-lucide="github"></i><span>GitHub</span></a>
+            <a class="btn btn-ghost" href="<%= config.developer.telegram %>" target="_blank" rel="noopener"><i data-lucide="send"></i><span>Telegram</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="container">
+      <div class="section-head"><span class="pill soft"><i data-lucide="layers-3"></i> Tech Stack</span><h2>Dibangun dengan</h2></div>
+      <div class="grid grid-4">
+        <div class="card tech"><i data-lucide="hexagon"></i><b>Node.js 18+</b><small>Native fetch runtime</small></div>
+        <div class="card tech"><i data-lucide="route"></i><b>Express 4</b><small>HTTP layer &amp; routing</small></div>
+        <div class="card tech"><i data-lucide="file-code-2"></i><b>EJS</b><small>Server-side rendering</small></div>
+        <div class="card tech"><i data-lucide="scissors"></i><b>Cheerio</b><small>HTML parsing</small></div>
+        <div class="card tech"><i data-lucide="database-zap"></i><b>TTL Cache</b><small>In-memory caching</small></div>
+        <div class="card tech"><i data-lucide="shield-check"></i><b>Rate Limiter</b><small>Proteksi per IP</small></div>
+        <div class="card tech"><i data-lucide="plug-zap"></i><b>Auto Registry</b><small>Zero-config routing</small></div>
+        <div class="card tech"><i data-lucide="gauge"></i><b>Compression</b><small>Gzip response</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head"><span class="pill soft"><i data-lucide="git-branch"></i> Perjalanan</span><h2>Timeline proyek</h2></div>
+      <div class="timeline">
+        <div class="tl-item"><span class="tl-dot"><i data-lucide="lightbulb"></i></span><div><b>Konsep</b><p class="muted">Menyatukan berbagai scraper terpisah ke dalam satu gateway API tunggal.</p></div></div>
+        <div class="tl-item"><span class="tl-dot"><i data-lucide="hammer"></i></span><div><b>Core Engine</b><p class="muted">Membangun HTTP client dengan fallback, envelope respons, dan TTL cache.</p></div></div>
+        <div class="tl-item"><span class="tl-dot"><i data-lucide="plug-zap"></i></span><div><b>Auto Connection</b><p class="muted">Registry pemindai folder yang membuat route serta dokumentasi otomatis.</p></div></div>
+        <div class="tl-item"><span class="tl-dot"><i data-lucide="layout-dashboard"></i></span><div><b>Docs &amp; Playground</b><p class="muted">Antarmuka dokumentasi interaktif yang selalu sinkron dengan registry.</p></div></div>
+        <div class="tl-item"><span class="tl-dot"><i data-lucide="rocket"></i></span><div><b>Rilis v<%= config.version %></b><p class="muted">Modul anime dan manhwa aktif, siap dikembangkan lebih lanjut.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="container">
+      <div class="section-head"><span class="pill soft"><i data-lucide="boxes"></i> Kontribusi Modul</span><h2>Modul yang terhubung saat ini</h2></div>
+      <div class="grid grid-3">
+        <% modules.forEach(function(m){ %>
+        <div class="card feature">
+          <span class="feature-icon"><i data-lucide="<%= m.icon %>"></i></span>
+          <h3><%= m.name %></h3>
+          <p class="muted small"><%= m.description %></p>
+          <span class="chip"><i data-lucide="route"></i><%= m.totalEndpoints %> endpoint</span>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="cta">
+        <div><h2>Kolaborasi?</h2><p class="muted">Terbuka untuk diskusi, kontribusi modul baru, maupun laporan bug.</p></div>
+        <div class="cta-actions">
+          <a class="btn btn-primary" href="mailto:<%= config.developer.email %>"><i data-lucide="mail"></i><span>Hubungi Saya</span></a>
+          <a class="btn btn-outline" href="/docs"><i data-lucide="book-text"></i><span>Dokumentasi</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

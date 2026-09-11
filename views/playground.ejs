@@ -1,0 +1,85 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<main class="container section">
+  <div class="section-head left">
+    <span class="pill"><i data-lucide="terminal-square"></i> Playground</span>
+    <h1>Uji endpoint secara langsung</h1>
+    <p class="muted">Pilih endpoint, isi parameter, lalu kirim request. Form dibangun otomatis dari registry — endpoint baru langsung muncul di sini.</p>
+  </div>
+
+  <div class="pg-layout">
+    <!-- REQUEST -->
+    <section class="card pg-request">
+      <h3 class="card-title"><i data-lucide="sliders-horizontal"></i> Request Builder</h3>
+
+      <label class="field">
+        <span><i data-lucide="boxes"></i> Endpoint</span>
+        <select id="pgEndpoint">
+          <% modules.forEach(function(m){ %>
+          <optgroup label="<%= m.name %>">
+            <% m.endpoints.forEach(function(e){ %>
+            <option value="<%= e.key %>"><%= e.method %> — <%= e.route %></option>
+            <% }) %>
+          </optgroup>
+          <% }) %>
+        </select>
+      </label>
+
+      <div class="pg-desc" id="pgDesc"></div>
+
+      <div id="pgParams" class="pg-params"></div>
+
+      <label class="field">
+        <span><i data-lucide="link-2"></i> Final URL</span>
+        <div class="url-box">
+          <input type="text" id="pgUrl" readonly>
+          <button class="icon-btn" id="pgCopyUrl" title="Salin URL"><i data-lucide="copy"></i></button>
+        </div>
+      </label>
+
+      <div class="pg-actions">
+        <button class="btn btn-primary" id="pgSend"><i data-lucide="send"></i><span>Kirim Request</span></button>
+        <a class="btn btn-outline" id="pgOpen" target="_blank" rel="noopener"><i data-lucide="external-link"></i><span>Buka Tab Baru</span></a>
+        <button class="btn btn-ghost" id="pgReset"><i data-lucide="rotate-ccw"></i><span>Reset</span></button>
+      </div>
+
+      <div class="code-block small-block">
+        <button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code id="pgCurl">curl -s ""</code></pre>
+      </div>
+    </section>
+
+    <!-- RESPONSE -->
+    <section class="card pg-response">
+      <h3 class="card-title">
+        <i data-lucide="file-json-2"></i> Response
+        <span class="spacer"></span>
+        <button class="icon-btn" id="pgCopyRes" title="Salin JSON"><i data-lucide="clipboard-copy"></i></button>
+        <button class="icon-btn" id="pgWrap" title="Toggle wrap"><i data-lucide="wrap-text"></i></button>
+      </h3>
+
+      <div class="res-meta">
+        <span class="res-chip" id="resStatus"><i data-lucide="circle-dashed"></i> idle</span>
+        <span class="res-chip" id="resTime"><i data-lucide="timer"></i> 0 ms</span>
+        <span class="res-chip" id="resSize"><i data-lucide="hard-drive"></i> 0 B</span>
+        <span class="res-chip" id="resCache"><i data-lucide="database"></i> -</span>
+      </div>
+
+      <div class="res-body">
+        <div class="res-empty" id="resEmpty">
+          <i data-lucide="mouse-pointer-click"></i>
+          <p>Belum ada request. Pilih endpoint lalu tekan <b>Kirim Request</b>.</p>
+        </div>
+        <pre id="resOutput" class="json-view" hidden><code></code></pre>
+        <div class="loader" id="resLoader" hidden><span class="spinner"></span> Mengambil data dari sumber...</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+<script>window.__API_PREFIX__ = "<%= config.apiPrefix %>"; window.__ORIGIN__ = "<%= origin %>";</script>
+<script src="/js/playground.js"></script>
+</body>
+</html>

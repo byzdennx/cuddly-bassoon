@@ -1,0 +1,32 @@
+<header class="nav" id="nav">
+  <div class="nav-inner container">
+    <a href="/" class="brand">
+      <span class="brand-mark"><i data-lucide="waves"></i></span>
+      <span class="brand-text">
+        <strong>EpannStream</strong>
+        <small>API Docs</small>
+      </span>
+    </a>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="/"           class="nav-link <%= page === 'home' ? 'active' : '' %>"><i data-lucide="home"></i><span>Home</span></a>
+      <a href="/docs"       class="nav-link <%= page === 'docs' ? 'active' : '' %>"><i data-lucide="book-text"></i><span>Docs</span></a>
+      <a href="/playground" class="nav-link <%= page === 'playground' ? 'active' : '' %>"><i data-lucide="terminal-square"></i><span>Playground</span></a>
+      <a href="/status"     class="nav-link <%= page === 'status' ? 'active' : '' %>"><i data-lucide="activity"></i><span>Status</span></a>
+      <a href="/about"      class="nav-link <%= page === 'about' ? 'active' : '' %>"><i data-lucide="user-round"></i><span>About Dev</span></a>
+    </nav>
+
+    <div class="nav-actions">
+      <button class="icon-btn" id="themeToggle" title="Ganti tema" aria-label="Ganti tema">
+        <i data-lucide="sun-moon"></i>
+      </button>
+      <a class="icon-btn" href="<%= config.developer.github %>" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+        <i data-lucide="github"></i>
+      </a>
+      <a class="btn btn-primary btn-sm hide-sm" href="<%= config.apiPrefix %>" target="_blank" rel="noopener">
+        <i data-lucide="plug-zap"></i><span>API Root</span>
+      </a>
+      <button class="icon-btn only-sm" id="navToggle" aria-label="Menu"><i data-lucide="menu"></i></button>
+    </div>
+  </div>
+</header>

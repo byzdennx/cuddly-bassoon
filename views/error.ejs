@@ -1,0 +1,17 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<main class="container error-page">
+  <span class="err-icon"><i data-lucide="unplug"></i></span>
+  <h1><%= code %></h1>
+  <h2><%= heading %></h2>
+  <p class="muted"><%= message %></p>
+  <div class="cta-actions center">
+    <a class="btn btn-primary" href="/"><i data-lucide="home"></i><span>Kembali ke Beranda</span></a>
+    <a class="btn btn-outline" href="/docs"><i data-lucide="book-text"></i><span>Dokumentasi</span></a>
+  </div>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

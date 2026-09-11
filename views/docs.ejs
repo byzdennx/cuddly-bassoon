@@ -1,0 +1,251 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<main class="docs-layout container">
+  <!-- SIDEBAR -->
+  <aside class="docs-sidebar" id="docsSidebar">
+    <div class="side-search">
+      <i data-lucide="search"></i>
+      <input type="text" id="docSearch" placeholder="Cari endpoint...">
+    </div>
+
+    <nav class="side-nav">
+      <span class="side-title"><i data-lucide="info"></i> Pengantar</span>
+      <a href="#overview" class="side-link"><i data-lucide="circle-dot"></i> Overview</a>
+      <a href="#envelope" class="side-link"><i data-lucide="package"></i> Format Respons</a>
+      <a href="#errors" class="side-link"><i data-lucide="triangle-alert"></i> Error Handling</a>
+      <a href="#limits" class="side-link"><i data-lucide="gauge"></i> Rate Limit &amp; Cache</a>
+      <a href="#autoconnect" class="side-link"><i data-lucide="plug-zap"></i> Auto Connection</a>
+
+      <% modules.forEach(function(m){ %>
+      <span class="side-title"><i data-lucide="<%= m.icon %>"></i> <%= m.name %></span>
+        <% m.endpoints.forEach(function(e){ %>
+        <a href="#<%= e.key %>" class="side-link ep-link" data-search="<%= (e.name + ' ' + e.route + ' ' + e.description).toLowerCase() %>">
+          <span class="method mini m-<%= e.method.toLowerCase() %>"><%= e.method %></span>
+          <span class="side-ep"><%= e.name %></span>
+        </a>
+        <% }) %>
+      <% }) %>
+    </nav>
+  </aside>
+
+  <!-- CONTENT -->
+  <section class="docs-content">
+    <header class="docs-head" id="overview">
+      <span class="pill"><i data-lucide="book-text"></i> Documentation</span>
+      <h1>API Reference</h1>
+      <p class="lead"><%= config.name %> v<%= config.version %> — base URL untuk seluruh endpoint:</p>
+      <div class="code-block inline">
+        <button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code><%= origin %><%= config.apiPrefix %></code></pre>
+      </div>
+      <div class="notice">
+        <i data-lucide="badge-check"></i>
+        <div><b>Tanpa autentikasi.</b> Semua endpoint bersifat publik, metode <code>GET</code>, dan mengembalikan <code>application/json</code>.</div>
+      </div>
+    </header>
+
+    <!-- ENVELOPE -->
+    <article class="doc-block" id="envelope">
+      <h2><i data-lucide="package"></i> Format Respons</h2>
+      <p class="muted">Setiap respons sukses dibungkus envelope berikut. Data asli scraper selalu berada di properti <code>result</code>.</p>
+      <div class="code-block">
+        <button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>{
+  "status": true,
+  "code": 200,
+  "creator": "<%= config.developer.name %>",
+  "service": "<%= config.name %>",
+  "version": "<%= config.version %>",
+  "endpoint": "<%= config.apiPrefix %>/anime/latest",
+  "cached": false,
+  "durationMs": 812,
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "module": "anime",
+  "source": "https://v2.samehadaku.how",
+  "result": { "...": "payload endpoint" }
+}</code></pre>
+      </div>
+    </article>
+
+    <!-- ERRORS -->
+    <article class="doc-block" id="errors">
+      <h2><i data-lucide="triangle-alert"></i> Error Handling</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kode</th><th>Arti</th><th>Penyebab umum</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge b-warn">400</span></td><td>Bad Request</td><td>Parameter wajib kosong atau nilai enum tidak valid.</td></tr>
+            <tr><td><span class="badge b-warn">404</span></td><td>Not Found</td><td>Route API tidak terdaftar di registry.</td></tr>
+            <tr><td><span class="badge b-warn">429</span></td><td>Too Many Requests</td><td>Melebihi <%= config.rateLimit.max %> request / <%= config.rateLimit.windowMs / 1000 %> detik.</td></tr>
+            <tr><td><span class="badge b-danger">502</span></td><td>Bad Gateway</td><td>Sumber down atau struktur HTML berubah.</td></tr>
+            <tr><td><span class="badge b-danger">500</span></td><td>Server Error</td><td>Kesalahan internal tak terduga.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>{
+  "status": false,
+  "code": 400,
+  "endpoint": "<%= config.apiPrefix %>/anime/search",
+  "error": {
+    "message": "Missing required parameter: q",
+    "hint": "Example -> <%= config.apiPrefix %>/anime/search?q=naruto&page=1"
+  },
+  "timestamp": "2025-01-01T00:00:00.000Z"
+}</code></pre>
+      </div>
+    </article>
+
+    <!-- LIMITS -->
+    <article class="doc-block" id="limits">
+      <h2><i data-lucide="gauge"></i> Rate Limit &amp; Cache</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3><i data-lucide="shield"></i> Rate Limit</h3>
+          <p class="muted">Maksimal <b><%= config.rateLimit.max %></b> request per <b><%= config.rateLimit.windowMs / 1000 %> detik</b> per IP.</p>
+          <ul class="list">
+            <li><i data-lucide="chevron-right"></i><code>X-RateLimit-Limit</code></li>
+            <li><i data-lucide="chevron-right"></i><code>X-RateLimit-Remaining</code></li>
+            <li><i data-lucide="chevron-right"></i><code>X-RateLimit-Reset</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3><i data-lucide="database-zap"></i> Cache</h3>
+          <p class="muted">TTL diatur per endpoint (lihat label <b>Cache</b> di tiap seksi). Respons dari cache ditandai <code>"cached": true</code>.</p>
+          <ul class="list">
+            <li><i data-lucide="chevron-right"></i>Default TTL <code><%= config.cache.defaultTtl %>s</code></li>
+            <li><i data-lucide="chevron-right"></i>Flush: <code>POST <%= config.apiPrefix %>/cache/flush</code></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- AUTOCONNECT -->
+    <article class="doc-block" id="autoconnect">
+      <h2><i data-lucide="plug-zap"></i> Auto Connection</h2>
+      <p class="muted">
+        Registry memindai folder <code>src/scrapers</code> saat boot dan memantaunya secara realtime.
+        Menambah file scraper baru = endpoint baru langsung hidup, termasuk halaman dokumentasi dan form playground ini.
+      </p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><div><b>Buat file</b><p class="muted small">Salin <code>_TEMPLATE.js</code> menjadi mis. <code>tiktok.js</code>.</p></div></div>
+        <div class="step"><span class="step-num">2</span><div><b>Isi manifest</b><p class="muted small">Definisikan <code>meta</code> dan array <code>endpoints</code> berisi <code>handler()</code>.</p></div></div>
+        <div class="step"><span class="step-num">3</span><div><b>Simpan</b><p class="muted small">Watcher mendeteksi perubahan, registry reload otomatis.</p></div></div>
+        <div class="step"><span class="step-num">4</span><div><b>Selesai</b><p class="muted small">Route <code><%= config.apiPrefix %>/&lt;id&gt;/&lt;path&gt;</code> siap dipakai.</p></div></div>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>module.exports = {
+  meta: { id: 'tiktok', name: 'TikTok Downloader', icon: 'music-4' },
+  endpoints: [{
+    name: 'Download',
+    method: 'GET',
+    path: '/download',
+    description: 'Ambil metadata & link video tanpa watermark.',
+    cache: 30,
+    params: [{ name: 'url', in: 'query', required: true, example: 'https://vt.tiktok.com/xxxx' }],
+    handler: async ({ query }) => ({ url: query.url })
+  }]
+};</code></pre>
+      </div>
+    </article>
+
+    <!-- AUTO GENERATED ENDPOINTS -->
+    <% modules.forEach(function(m){ %>
+    <section class="module-section" id="<%= m.id %>">
+      <header class="module-banner">
+        <span class="module-icon lg"><i data-lucide="<%= m.icon %>"></i></span>
+        <div>
+          <h2><%= m.name %> <span class="tag tag-<%= m.stability %>"><%= m.stability %></span></h2>
+          <p class="muted"><%= m.description %></p>
+          <div class="meta-row">
+            <span class="chip"><i data-lucide="link"></i><%= m.basePath %></span>
+            <span class="chip"><i data-lucide="route"></i><%= m.totalEndpoints %> endpoint</span>
+            <span class="chip"><i data-lucide="file-code-2"></i><%= m.file %></span>
+            <% if (m.baseUrl) { %><span class="chip"><i data-lucide="server"></i><%= m.baseUrl.replace(/^https?:\/\//,'') %></span><% } %>
+          </div>
+        </div>
+      </header>
+
+      <% m.endpoints.forEach(function(e){ %>
+      <article class="endpoint" id="<%= e.key %>" data-search="<%= (e.name + ' ' + e.route + ' ' + e.description).toLowerCase() %>">
+        <header class="endpoint-head">
+          <span class="method m-<%= e.method.toLowerCase() %>"><%= e.method %></span>
+          <code class="endpoint-route"><%= e.route %></code>
+          <span class="spacer"></span>
+          <span class="chip small"><i data-lucide="timer"></i>cache <%= e.cache %>s</span>
+          <span class="chip small"><i data-lucide="folder"></i><%= e.group %></span>
+          <a class="btn btn-ghost btn-xs" href="/playground?ep=<%= encodeURIComponent(e.key) %>"><i data-lucide="terminal-square"></i><span>Try</span></a>
+        </header>
+
+        <p class="endpoint-desc"><%= e.description %></p>
+
+        <% if (e.params.length) { %>
+        <h4 class="sub"><i data-lucide="sliders-horizontal"></i> Parameter</h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nama</th><th>Lokasi</th><th>Tipe</th><th>Wajib</th><th>Default</th><th>Keterangan</th></tr></thead>
+            <tbody>
+            <% e.params.forEach(function(p){ %>
+              <tr>
+                <td><code><%= p.name %></code></td>
+                <td><span class="chip xs"><%= p.in %></span></td>
+                <td class="muted"><%= p.type %></td>
+                <td><% if (p.required) { %><span class="badge b-danger">required</span><% } else { %><span class="badge b-soft">optional</span><% } %></td>
+                <td class="muted"><%= p.default === null ? '-' : p.default %></td>
+                <td class="muted">
+                  <%= p.description %>
+                  <% if (p.enum) { %><br><span class="small">Nilai: <code><%= p.enum.join(', ') %></code></span><% } %>
+                </td>
+              </tr>
+            <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <% } else { %>
+        <p class="muted small"><i data-lucide="minus"></i> Endpoint ini tidak memerlukan parameter.</p>
+        <% } %>
+
+        <h4 class="sub"><i data-lucide="send"></i> Contoh Request</h4>
+        <div class="tabs" data-tabs>
+          <div class="tab-bar">
+            <button class="tab active" data-tab="c<%= e.key %>"><i data-lucide="terminal"></i> cURL</button>
+            <button class="tab" data-tab="j<%= e.key %>"><i data-lucide="braces"></i> JavaScript</button>
+            <button class="tab" data-tab="p<%= e.key %>"><i data-lucide="file-code-2"></i> Python</button>
+          </div>
+          <div class="tab-panel active" data-panel="c<%= e.key %>">
+            <div class="code-block"><button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>curl -s "<%= origin %><%= e.exampleUrl %>"</code></pre></div>
+          </div>
+          <div class="tab-panel" data-panel="j<%= e.key %>">
+            <div class="code-block"><button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>const res  = await fetch("<%= origin %><%= e.exampleUrl %>");
+const json = await res.json();
+console.log(json.result);</code></pre></div>
+          </div>
+          <div class="tab-panel" data-panel="p<%= e.key %>">
+            <div class="code-block"><button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>import requests
+r = requests.get("<%= origin %><%= e.exampleUrl %>", timeout=30)
+print(r.json()["result"])</code></pre></div>
+          </div>
+        </div>
+
+        <% if (e.responseShape) { %>
+        <h4 class="sub"><i data-lucide="file-json-2"></i> Struktur <code>result</code></h4>
+        <div class="code-block"><button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code><%= JSON.stringify(e.responseShape, null, 2) %></code></pre></div>
+        <% } %>
+      </article>
+      <% }) %>
+    </section>
+    <% }) %>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+<script src="/js/docs.js"></script>
+</body>
+</html>

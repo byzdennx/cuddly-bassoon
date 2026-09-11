@@ -1,0 +1,44 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<main class="container section">
+  <div class="section-head left">
+    <span class="pill"><i data-lucide="activity"></i> Service Status</span>
+    <h1>Kondisi runtime &amp; registry</h1>
+    <p class="muted">Data diperbarui otomatis setiap 10 detik dari <code><%= config.apiPrefix %>/stats</code>.</p>
+  </div>
+
+  <div class="grid grid-4" id="statCards">
+    <div class="card stat-card"><span class="stat-ico"><i data-lucide="heart-pulse"></i></span><div><small>Status</small><b id="sHealth">-</b></div></div>
+    <div class="card stat-card"><span class="stat-ico"><i data-lucide="clock"></i></span><div><small>Uptime</small><b id="sUptime">-</b></div></div>
+    <div class="card stat-card"><span class="stat-ico"><i data-lucide="cpu"></i></span><div><small>Heap Used</small><b id="sHeap">-</b></div></div>
+    <div class="card stat-card"><span class="stat-ico"><i data-lucide="database-zap"></i></span><div><small>Cache Hit Rate</small><b id="sHit">-</b></div></div>
+  </div>
+
+  <div class="grid grid-2 gap-lg">
+    <section class="card">
+      <h3 class="card-title"><i data-lucide="server-cog"></i> Runtime</h3>
+      <ul class="kv" id="kvRuntime"></ul>
+    </section>
+    <section class="card">
+      <h3 class="card-title"><i data-lucide="plug-zap"></i> Registry</h3>
+      <ul class="kv" id="kvRegistry"></ul>
+    </section>
+  </div>
+
+  <section class="card">
+    <h3 class="card-title"><i data-lucide="list-ordered"></i> Statistik Endpoint</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Route</th><th>Total Hit</th><th>From Cache</th><th>Failed</th></tr></thead>
+        <tbody id="epTable"><tr><td colspan="5" class="muted">Memuat...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+<script>window.__API_PREFIX__ = "<%= config.apiPrefix %>";</script>
+<script src="/js/status.js"></script>
+</body>
+</html>

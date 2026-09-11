@@ -1,0 +1,47 @@
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a href="/" class="brand">
+        <span class="brand-mark"><i data-lucide="waves"></i></span>
+        <span class="brand-text"><strong>EpannStream</strong><small>v<%= config.version %></small></span>
+      </a>
+      <p class="muted"><%= config.tagline %>. Dibangun dengan Node.js &amp; Express, dilengkapi auto-connected scraper registry.</p>
+      <div class="footer-social">
+        <a class="icon-btn" href="<%= config.developer.github %>" target="_blank" rel="noopener" title="GitHub"><i data-lucide="github"></i></a>
+        <a class="icon-btn" href="<%= config.developer.telegram %>" target="_blank" rel="noopener" title="Telegram"><i data-lucide="send"></i></a>
+        <a class="icon-btn" href="mailto:<%= config.developer.email %>" title="Email"><i data-lucide="mail"></i></a>
+        <a class="icon-btn" href="<%= config.developer.website %>" target="_blank" rel="noopener" title="Website"><i data-lucide="globe"></i></a>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4><i data-lucide="compass"></i> Navigasi</h4>
+      <a href="/">Landing</a>
+      <a href="/docs">Documentation</a>
+      <a href="/playground">Playground</a>
+      <a href="/status">Service Status</a>
+      <a href="/about">About Developer</a>
+    </div>
+
+    <div class="footer-col">
+      <h4><i data-lucide="code-2"></i> Endpoint Utility</h4>
+      <a href="<%= config.apiPrefix %>" target="_blank" rel="noopener">API Root</a>
+      <a href="<%= config.apiPrefix %>/endpoints" target="_blank" rel="noopener">Manifest JSON</a>
+      <a href="<%= config.apiPrefix %>/health" target="_blank" rel="noopener">Health Check</a>
+      <a href="<%= config.apiPrefix %>/stats" target="_blank" rel="noopener">Runtime Stats</a>
+    </div>
+
+    <div class="footer-col">
+      <h4><i data-lucide="shield-check"></i> Kebijakan</h4>
+      <p class="muted small">API ini menyediakan agregasi metadata publik. Seluruh konten adalah milik pemilik sumber masing-masing. Gunakan secara wajar dan patuhi rate limit.</p>
+    </div>
+  </div>
+
+  <div class="footer-bottom container">
+    <span><i data-lucide="copyright"></i> <%= year %> <%= config.name %>. All rights reserved.</span>
+    <span class="muted">Crafted by <a href="<%= config.developer.website %>" target="_blank" rel="noopener"><%= config.developer.name %></a></span>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/lucide@0.427.0/dist/umd/lucide.min.js"></script>
+<script src="/js/main.js"></script>

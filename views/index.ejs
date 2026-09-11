@@ -1,0 +1,206 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <span class="pill"><i data-lucide="sparkles"></i> Auto-Connected Scraper Registry</span>
+        <h1>Satu REST API untuk <span class="grad">Anime</span> &amp; <span class="grad">Manhwa</span></h1>
+        <p class="lead">
+          <%= config.name %> menyatukan berbagai sumber ke dalam satu antarmuka JSON yang konsisten,
+          terdokumentasi rapi, dan siap dipakai untuk aplikasi web, mobile, maupun bot.
+        </p>
+
+        <div class="hero-cta">
+          <a href="/docs" class="btn btn-primary"><i data-lucide="book-text"></i><span>Baca Dokumentasi</span></a>
+          <a href="/playground" class="btn btn-ghost"><i data-lucide="terminal-square"></i><span>Coba Playground</span></a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat"><i data-lucide="boxes"></i><div><b data-count="<%= modules.length %>">0</b><span>Modul</span></div></div>
+          <div class="stat"><i data-lucide="route"></i><div><b data-count="<%= totalEndpoints %>">0</b><span>Endpoint</span></div></div>
+          <div class="stat"><i data-lucide="gauge"></i><div><b data-count="99">0</b><span>% Uptime</span></div></div>
+          <div class="stat"><i data-lucide="badge-dollar-sign"></i><div><b>Free</b><span>No API Key</span></div></div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+            <span class="terminal-title"><i data-lucide="terminal"></i> bash — epannstream</span>
+          </div>
+<pre class="terminal-body"><code><span class="tok-comment"># Ambil rilis anime terbaru</span>
+<span class="tok-cmd">curl</span> <%= origin %><%= config.apiPrefix %>/anime/latest
+
+<span class="tok-key">"status"</span>: <span class="tok-bool">true</span>,
+<span class="tok-key">"creator"</span>: <span class="tok-str">"<%= config.developer.name %>"</span>,
+<span class="tok-key">"endpoint"</span>: <span class="tok-str">"<%= config.apiPrefix %>/anime/latest"</span>,
+<span class="tok-key">"cached"</span>: <span class="tok-bool">false</span>,
+<span class="tok-key">"durationMs"</span>: <span class="tok-num">742</span>,
+<span class="tok-key">"result"</span>: { <span class="tok-key">"total"</span>: <span class="tok-num">30</span>, <span class="tok-key">"data"</span>: [ ... ] }</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="pill soft"><i data-lucide="layers"></i> Fitur</span>
+        <h2>Dirancang untuk developer</h2>
+        <p class="muted">Struktur respons seragam, caching cerdas, dan arsitektur modular yang mudah diperluas.</p>
+      </div>
+
+      <div class="grid grid-3">
+        <article class="card feature">
+          <span class="feature-icon"><i data-lucide="plug-zap"></i></span>
+          <h3>Auto Connection</h3>
+          <p>Letakkan file scraper baru di folder <code>src/scrapers</code>, endpoint, dokumentasi, dan playground langsung ter-generate otomatis.</p>
+        </article>
+        <article class="card feature">
+          <span class="feature-icon"><i data-lucide="database-zap"></i></span>
+          <h3>Smart Caching</h3>
+          <p>Cache TTL per endpoint mengurangi beban sumber dan memangkas latensi respons secara signifikan.</p>
+        </article>
+        <article class="card feature">
+          <span class="feature-icon"><i data-lucide="shield-check"></i></span>
+          <h3>Rate Limiting</h3>
+          <p>Proteksi per IP dengan header <code>X-RateLimit-*</code> agar layanan tetap stabil untuk semua pengguna.</p>
+        </article>
+        <article class="card feature">
+          <span class="feature-icon"><i data-lucide="file-json-2"></i></span>
+          <h3>Konsisten &amp; Terprediksi</h3>
+          <p>Semua respons memakai envelope yang sama: status, endpoint, durasi, timestamp, dan <code>result</code>.</p>
+        </article>
+        <article class="card feature">
+          <span class="feature-icon"><i data-lucide="globe-2"></i></span>
+          <h3>CORS Terbuka</h3>
+          <p>Bisa dipanggil langsung dari browser, aplikasi mobile, maupun serverless function tanpa proxy tambahan.</p>
+        </article>
+        <article class="card feature">
+          <span class="feature-icon"><i data-lucide="activity"></i></span>
+          <h3>Observability</h3>
+          <p>Endpoint health &amp; stats menyajikan uptime, memori, hit-rate cache, hingga statistik per route.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section class="section alt">
+    <div class="container">
+      <div class="section-head">
+        <span class="pill soft"><i data-lucide="boxes"></i> Modul Aktif</span>
+        <h2>Terhubung otomatis saat server berjalan</h2>
+        <p class="muted">Daftar di bawah dibaca langsung dari registry, bukan hardcode.</p>
+      </div>
+
+      <div class="grid grid-2">
+        <% modules.forEach(function(m){ %>
+        <article class="card module-card">
+          <header class="module-head">
+            <span class="module-icon"><i data-lucide="<%= m.icon %>"></i></span>
+            <div>
+              <h3><%= m.name %> <span class="tag tag-<%= m.stability %>"><%= m.stability %></span></h3>
+              <code class="muted small"><%= m.basePath %></code>
+            </div>
+            <span class="counter"><i data-lucide="route"></i> <%= m.totalEndpoints %></span>
+          </header>
+          <p class="muted"><%= m.description %></p>
+          <ul class="endpoint-mini">
+            <% m.endpoints.slice(0,4).forEach(function(e){ %>
+            <li><span class="method m-<%= e.method.toLowerCase() %>"><%= e.method %></span><code><%= e.route %></code></li>
+            <% }) %>
+          </ul>
+          <div class="module-foot">
+            <% m.tags.forEach(function(t){ %><span class="chip"><i data-lucide="hash"></i><%= t %></span><% }) %>
+          </div>
+          <a class="btn btn-ghost btn-sm" href="/docs#<%= m.id %>"><i data-lucide="arrow-right"></i><span>Lihat dokumentasi</span></a>
+        </article>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICKSTART -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="pill soft"><i data-lucide="rocket"></i> Quick Start</span>
+        <h2>Integrasi dalam hitungan menit</h2>
+      </div>
+
+      <div class="tabs" data-tabs>
+        <div class="tab-bar">
+          <button class="tab active" data-tab="js"><i data-lucide="braces"></i> JavaScript</button>
+          <button class="tab" data-tab="curl"><i data-lucide="terminal"></i> cURL</button>
+          <button class="tab" data-tab="py"><i data-lucide="file-code-2"></i> Python</button>
+        </div>
+
+        <div class="tab-panel active" data-panel="js">
+          <div class="code-block">
+            <button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>const BASE = "<%= origin %><%= config.apiPrefix %>";
+
+async function getLatestAnime(page = 1) {
+  const res  = await fetch(`${BASE}/anime/latest?page=${page}`);
+  const json = await res.json();
+  if (!json.status) throw new Error(json.error.message);
+  return json.result.data;
+}
+
+getLatestAnime().then(console.log);</code></pre>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="curl">
+          <div class="code-block">
+            <button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>curl -s "<%= origin %><%= config.apiPrefix %>/manhwa/search?q=lookism" | jq .
+
+curl -s "<%= origin %><%= config.apiPrefix %>/anime/schedule?day=senin" | jq .result.data</code></pre>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="py">
+          <div class="code-block">
+            <button class="copy-btn" data-copy><i data-lucide="copy"></i></button>
+<pre><code>import requests
+
+BASE = "<%= origin %><%= config.apiPrefix %>"
+
+r = requests.get(f"{BASE}/manhwa/detail/lookism", timeout=30)
+data = r.json()["result"]
+
+print(data["title"], "-", data["totalChapters"], "chapters")</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section">
+    <div class="container">
+      <div class="cta">
+        <div>
+          <h2>Siap membangun sesuatu?</h2>
+          <p class="muted">Tanpa API key, tanpa registrasi. Langsung uji setiap endpoint di playground interaktif.</p>
+        </div>
+        <div class="cta-actions">
+          <a href="/playground" class="btn btn-primary"><i data-lucide="play"></i><span>Buka Playground</span></a>
+          <a href="/docs" class="btn btn-outline"><i data-lucide="book-open-check"></i><span>Dokumentasi</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>
