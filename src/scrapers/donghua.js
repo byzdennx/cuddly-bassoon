@@ -5,7 +5,6 @@ const { get } = require('../core/http');
 
 const BASE_URL = 'https://donghub.vip';
 
-/* ---------------------------- helpers ---------------------------- */
 function parseAnimeCard($, $el) {
   const title = $el.find('.tt h2').text().trim();
   const url = $el.find('.bsx a').attr('href') || '';
@@ -18,10 +17,10 @@ function parseAnimeCard($, $el) {
   return { title, slug, image, status, type, sub, url };
 }
 
-/* ---------------------------- actions ---------------------------- */
 async function getLatestAnime(page = 1) {
   const url = page === 1 ? `${BASE_URL}/` : `${BASE_URL}/page/${page}/`;
-  const $ = cheerio.load(await get(url));
+  const html = await get(url);
+  const $ = cheerio.load(html);
   const data = [];
 
   $('.listupd.normal .bs').each((_, element) => {
@@ -33,7 +32,8 @@ async function getLatestAnime(page = 1) {
 
 async function getSeriesList(page = 1) {
   const url = `${BASE_URL}/anime/?page=${page}&status=&type=&order=update`;
-  const $ = cheerio.load(await get(url));
+  const html = await get(url);
+  const $ = cheerio.load(html);
   const data = [];
 
   $('.listupd .bs').each((_, element) => {
@@ -45,7 +45,8 @@ async function getSeriesList(page = 1) {
 
 async function getSeriesDetail(slug) {
   const url = `${BASE_URL}/anime/${slug}/`;
-  const $ = cheerio.load(await get(url));
+  const html = await get(url);
+  const $ = cheerio.load(html);
 
   const title = $('.entry-title').text().trim();
   const image = $('.thumb img').attr('src') || '';
@@ -85,7 +86,8 @@ async function getSeriesDetail(slug) {
 
 async function getEpisodeDetail(slug) {
   const url = `${BASE_URL}/${slug}/`;
-  const $ = cheerio.load(await get(url));
+  const html = await get(url);
+  const $ = cheerio.load(html);
 
   const title = $('.entry-title').text().trim();
   const servers = [];
@@ -102,9 +104,7 @@ async function getEpisodeDetail(slug) {
         if (iframeMatch) {
           servers.push({ name, type: 'embed', embedUrl: iframeMatch[1] });
         }
-      } catch {
-        // Abaikan nilai non-base64
-      }
+      } catch (_) {}
     }
   });
 
@@ -124,7 +124,8 @@ async function getEpisodeDetail(slug) {
 
 async function searchAnime(query) {
   const url = `${BASE_URL}/?s=${encodeURIComponent(query)}`;
-  const $ = cheerio.load(await get(url));
+  const html = await get(url);
+  const $ = cheerio.load(html);
   const data = [];
 
   $('.listupd .bs').each((_, element) => {
@@ -134,79 +135,47 @@ async function searchAnime(query) {
   return { query, total: data.length, data };
 }
 
-/* ---------------------------- MANIFEST ---------------------------- */
 module.exports = {
   meta: {
     id: 'donghua',
-    name: 'Donghua / Donghub',
-    description: 'Scraper donghua (animasi China): rilis terbaru, katalog seri, pencarian, detail seri dengan daftar episode, dan detail episode dengan server streaming (base64 encoded embed URL).',
+    name: 'Donghua Streaming',
+    description: 'Scraper donghua (animasi 3D & 2D China) dari Donghub: rilis terbaru, katalog seri, pencarian judul, detail episode dengan decode base64 streaming server.',
     baseUrl: BASE_URL,
     icon: 'tv-minimal',
-    tags: ['donghua', 'anime-china', 'streaming', 'subtitle'],
+    tags: ['donghua', 'anime-china', 'streaming'],
     order: 40,
     stability: 'stable'
   },
 
   endpoints: [
     {
-      name: 'Latest',
-      method: 'GET',
-      path: '/latest',
-      group: 'Discovery',
-      description: 'Daftar donghua terbaru dari halaman utama.',
-      cache: 120,
-      params: [
-        { name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Nomor halaman.' }
-      ],
-      responseShape: { total: 'number', data: '[{ title, slug, image, status, type, sub, url }]' },
+      name: 'Latest', method: 'GET', path: '/latest', group: 'Discovery',
+      description: 'Daftar episode donghua terbaru.', cache: 120,
+      params: [{ name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Halaman.' }],
       handler: ({ query }) => getLatestAnime(parseInt(query.page, 10) || 1)
     },
     {
-      name: 'Series List',
-      method: 'GET',
-      path: '/list',
-      group: 'Discovery',
-      description: 'Katalog lengkap donghua dengan pagination.',
-      cache: 180,
-      params: [
-        { name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Nomor halaman katalog.' }
-      ],
+      name: 'Series List', method: 'GET', path: '/list', group: 'Discovery',
+      description: 'Katalog serial donghua terupdate.', cache: 180,
+      params: [{ name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Halaman.' }],
       handler: ({ query }) => getSeriesList(parseInt(query.page, 10) || 1)
     },
     {
-      name: 'Search',
-      method: 'GET',
-      path: '/search',
-      group: 'Discovery',
-      description: 'Cari donghua berdasarkan judul.',
-      cache: 120,
-      params: [
-        { name: 'q', in: 'query', type: 'string', required: true, example: 'soul land', description: 'Kata kunci pencarian.' }
-      ],
+      name: 'Search', method: 'GET', path: '/search', group: 'Discovery',
+      description: 'Pencarian serial donghua.', cache: 120,
+      params: [{ name: 'q', in: 'query', type: 'string', required: true, example: 'soul land', description: 'Kata kunci.' }],
       handler: ({ query }) => searchAnime(query.q)
     },
     {
-      name: 'Series Detail',
-      method: 'GET',
-      path: '/detail/:slug',
-      group: 'Content',
-      description: 'Detail lengkap satu seri donghua: informasi, genre, dan seluruh daftar episode.',
-      cache: 300,
-      params: [
-        { name: 'slug', in: 'path', type: 'string', required: true, example: 'soul-land', description: 'Slug seri donghua.' }
-      ],
+      name: 'Detail', method: 'GET', path: '/detail/:slug', group: 'Content',
+      description: 'Detail lengkap donghua beserta daftar episode.', cache: 300,
+      params: [{ name: 'slug', in: 'path', type: 'string', required: true, example: 'soul-land', description: 'Slug serial.' }],
       handler: ({ params }) => getSeriesDetail(params.slug)
     },
     {
-      name: 'Episode Detail',
-      method: 'GET',
-      path: '/episode/:slug',
-      group: 'Content',
-      description: 'Detail episode: judul, server streaming (base64 decoded embed URL), dan navigasi episode.',
-      cache: 300,
-      params: [
-        { name: 'slug', in: 'path', type: 'string', required: true, example: 'soul-land-episode-100', description: 'Slug episode.' }
-      ],
+      name: 'Episode', method: 'GET', path: '/episode/:slug', group: 'Content',
+      description: 'Detail episode donghua beserta embed player server.', cache: 300,
+      params: [{ name: 'slug', in: 'path', type: 'string', required: true, example: 'soul-land-episode-100', description: 'Slug episode.' }],
       handler: ({ params }) => getEpisodeDetail(params.slug)
     }
   ],

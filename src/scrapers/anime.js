@@ -5,7 +5,6 @@ const { get, post } = require('../core/http');
 
 const BASE_URL = 'https://v2.samehadaku.how';
 
-/* ---------------------------- helpers ---------------------------- */
 function cleanUrl(link) {
   if (!link) return null;
   const v = String(link).trim();
@@ -21,10 +20,10 @@ function extractSlug(link) {
   return p.split('/').pop() || '';
 }
 
-/* ---------------------------- actions ---------------------------- */
 async function getLatest(page = 1) {
   const target = page > 1 ? `${BASE_URL}/anime-terbaru/page/${page}/` : `${BASE_URL}/anime-terbaru/`;
-  const $ = cheerio.load(await get(target));
+  const html = await get(target);
+  const $ = cheerio.load(html);
   const data = [];
 
   $('.post-show ul li').each((_, el) => {
@@ -40,8 +39,7 @@ async function getLatest(page = 1) {
       thumbnail: $(el).find('.thumb img').attr('src') || null,
       episode: $(el).find('.dtla span:contains("Episode") author').text().trim() || null,
       postedBy: $(el).find('.dtla span.author author').text().trim() || null,
-      releasedOn:
-        $(el).find('.dtla span:contains("Released")').text().replace(/.*Released on:\s*/i, '').trim() || null
+      releasedOn: $(el).find('.dtla span:contains("Released")').text().replace(/.*Released on:\s*/i, '').trim() || null
     });
   });
 
@@ -49,7 +47,8 @@ async function getLatest(page = 1) {
 }
 
 async function getTopAnime() {
-  const $ = cheerio.load(await get(BASE_URL));
+  const html = await get(BASE_URL);
+  const $ = cheerio.load(html);
   const data = [];
 
   $('.topten-animesu .animepost').each((i, el) => {
@@ -72,11 +71,11 @@ async function getTopAnime() {
 }
 
 async function searchAnime(query, page = 1) {
-  const target =
-    page > 1
-      ? `${BASE_URL}/page/${page}/?s=${encodeURIComponent(query)}`
-      : `${BASE_URL}/?s=${encodeURIComponent(query)}`;
-  const $ = cheerio.load(await get(target));
+  const target = page > 1
+    ? `${BASE_URL}/page/${page}/?s=${encodeURIComponent(query)}`
+    : `${BASE_URL}/?s=${encodeURIComponent(query)}`;
+  const html = await get(target);
+  const $ = cheerio.load(html);
   const data = [];
   const seen = new Set();
 
@@ -104,7 +103,8 @@ async function getAnimeDetail(slugOrUrl) {
   const target = slugOrUrl.startsWith('http')
     ? slugOrUrl
     : `${BASE_URL}/anime/${slugOrUrl.replace(/^\/+|\/+$/g, '')}/`;
-  const $ = cheerio.load(await get(target));
+  const html = await get(target);
+  const $ = cheerio.load(html);
   const info = {};
 
   $('.spe span').each((_, el) => {
@@ -166,7 +166,8 @@ async function getEpisodeDetail(slugOrUrl, resolveStreams = true) {
   const target = slugOrUrl.startsWith('http')
     ? slugOrUrl
     : `${BASE_URL}/${slugOrUrl.replace(/^\/+|\/+$/g, '')}/`;
-  const $ = cheerio.load(await get(target));
+  const html = await get(target);
+  const $ = cheerio.load(html);
 
   const streamingServers = [];
   const serverEls = $('#server ul li div.east_player_option');
@@ -186,11 +187,14 @@ async function getEpisodeDetail(slugOrUrl, resolveStreams = true) {
     if (available && postId && nume) {
       try {
         const raw = await post(`${BASE_URL}/wp-admin/admin-ajax.php`, {
-          action: 'player_ajax', post: postId, nume, type: 'schtml'
+          action: 'player_ajax',
+          post: postId,
+          nume,
+          type: 'schtml'
         });
         const m = raw.match(/src=["']([^"']+)["']/i);
         if (m) streamingServers.push({ name, postId, nume, embedUrl: m[1] });
-      } catch (_) { /* skip server bermasalah */ }
+      } catch (_) {}
     }
   }
 
@@ -242,9 +246,8 @@ async function getSchedule(day = 'monday') {
   const selectedDay = days[String(day).toLowerCase()] || String(day).toLowerCase();
   const raw = await get(`${BASE_URL}/wp-json/custom/v1/all-schedule?perpage=50&day=${selectedDay}`);
 
-  let parsed;
-  try { parsed = JSON.parse(raw); } catch { throw new Error('Schedule endpoint returned invalid JSON'); }
-  if (!Array.isArray(parsed)) parsed = [];
+  let parsed = [];
+  try { parsed = JSON.parse(raw); } catch { throw new Error('Format respon jadwal tidak valid'); }
 
   const data = parsed.map((item) => ({
     id: item.id,
@@ -264,7 +267,8 @@ async function getSchedule(day = 'monday') {
 }
 
 async function getGenres() {
-  const $ = cheerio.load(await get(BASE_URL));
+  const html = await get(BASE_URL);
+  const $ = cheerio.load(html);
   const data = [];
   const seen = new Set();
 
@@ -283,7 +287,8 @@ async function getGenres() {
 async function getByGenre(genreSlug, page = 1) {
   const clean = genreSlug.replace(/^\/+|\/+$/g, '').replace('genre/', '');
   const target = page > 1 ? `${BASE_URL}/genre/${clean}/page/${page}/` : `${BASE_URL}/genre/${clean}/`;
-  const $ = cheerio.load(await get(target));
+  const html = await get(target);
+  const $ = cheerio.load(html);
   const data = [];
   const seen = new Set();
 
@@ -305,121 +310,75 @@ async function getByGenre(genreSlug, page = 1) {
   return { genre: clean, page: Number(page), total: data.length, data };
 }
 
-/* -------------------------- MANIFEST ----------------------------- */
 module.exports = {
   meta: {
     id: 'anime',
     name: 'Anime Streaming',
-    description: 'Scraper anime: rilis terbaru, top 10, pencarian, detail seri, episode dengan server streaming & link download, jadwal rilis, dan genre.',
+    description: 'Scraper anime sub Indo dari Samehadaku: rilis terbaru, top anime, detail serial, episode dengan streaming embed & download link, jadwal tayang, dan genre.',
     baseUrl: BASE_URL,
     icon: 'clapperboard',
-    tags: ['anime', 'streaming', 'subtitle-indonesia', 'download'],
+    tags: ['anime', 'streaming', 'subtitle-indonesia'],
     order: 10,
     stability: 'stable'
   },
 
   endpoints: [
     {
-      name: 'Latest',
-      method: 'GET',
-      path: '/latest',
-      group: 'Discovery',
-      description: 'Daftar episode anime terbaru yang dirilis.',
-      cache: 120,
-      params: [{ name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Halaman rilis terbaru.' }],
-      responseShape: { total: 'number', data: '[{ title, slug, url, thumbnail, episode, postedBy, releasedOn }]' },
+      name: 'Latest', method: 'GET', path: '/latest', group: 'Discovery',
+      description: 'Daftar episode anime terbaru yang dirilis.', cache: 120,
+      params: [{ name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Halaman.' }],
       handler: ({ query }) => getLatest(parseInt(query.page, 10) || 1)
     },
     {
-      name: 'Top Anime',
-      method: 'GET',
-      path: '/top',
-      group: 'Discovery',
-      description: 'Top 10 anime berdasarkan popularitas di halaman utama.',
-      cache: 600,
-      params: [],
+      name: 'Top Anime', method: 'GET', path: '/top', group: 'Discovery',
+      description: 'Top 10 anime terpopuler.', cache: 600, params: [],
       handler: () => getTopAnime()
     },
     {
-      name: 'Search',
-      method: 'GET',
-      path: '/search',
-      group: 'Discovery',
-      description: 'Cari anime berdasarkan judul.',
-      cache: 120,
+      name: 'Search', method: 'GET', path: '/search', group: 'Discovery',
+      description: 'Cari anime berdasarkan judul.', cache: 120,
       params: [
-        { name: 'q', in: 'query', type: 'string', required: true, example: 'naruto', description: 'Keyword pencarian.' },
-        { name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Halaman hasil.' }
+        { name: 'q', in: 'query', type: 'string', required: true, example: 'naruto', description: 'Kata kunci.' },
+        { name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Halaman.' }
       ],
       handler: ({ query }) => searchAnime(query.q, parseInt(query.page, 10) || 1)
     },
     {
-      name: 'Detail',
-      method: 'GET',
-      path: '/detail/:slug',
-      group: 'Content',
-      description: 'Informasi lengkap satu seri anime beserta seluruh daftar episode.',
-      cache: 300,
-      params: [{ name: 'slug', in: 'path', type: 'string', required: true, example: 'naruto-kecil', description: 'Slug seri anime.' }],
+      name: 'Detail', method: 'GET', path: '/detail/:slug', group: 'Content',
+      description: 'Informasi lengkap serial anime beserta seluruh episode.', cache: 300,
+      params: [{ name: 'slug', in: 'path', type: 'string', required: true, example: 'naruto-kecil', description: 'Slug serial.' }],
       handler: ({ params }) => getAnimeDetail(params.slug)
     },
     {
-      name: 'Episode',
-      method: 'GET',
-      path: '/episode/:slug',
-      group: 'Content',
-      description: 'Detail episode: server streaming (embed URL), navigasi prev/next, dan link download per kualitas.',
-      cache: 300,
+      name: 'Episode', method: 'GET', path: '/episode/:slug', group: 'Content',
+      description: 'Detail episode: server streaming embed, navigasi, dan link download.', cache: 300,
       params: [
         { name: 'slug', in: 'path', type: 'string', required: true, example: 'mushoku-tensei-isekai-ittara-honki-dasu-season-3-episode-11', description: 'Slug episode.' },
-        { name: 'resolve', in: 'query', type: 'boolean', required: false, default: 'true', example: 'true', enum: ['true', 'false'], description: 'Resolve embed URL tiap server (lebih lambat bila true).' }
+        { name: 'resolve', in: 'query', type: 'boolean', required: false, default: 'true', example: 'true', enum: ['true', 'false'], description: 'Resolve embed URL.' }
       ],
       handler: ({ params, query }) => getEpisodeDetail(params.slug, String(query.resolve ?? 'true') !== 'false')
     },
     {
-      name: 'Schedule',
-      method: 'GET',
-      path: '/schedule',
-      group: 'Metadata',
-      description: 'Jadwal rilis anime per hari. Mendukung nama hari Indonesia maupun Inggris.',
-      cache: 900,
-      params: [
-        {
-          name: 'day', in: 'query', type: 'string', required: false, default: 'monday', example: 'senin',
-          enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-                 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'],
-          description: 'Hari jadwal tayang.'
-        }
-      ],
+      name: 'Schedule', method: 'GET', path: '/schedule', group: 'Metadata',
+      description: 'Jadwal tayang anime per hari.', cache: 900,
+      params: [{ name: 'day', in: 'query', type: 'string', required: false, default: 'monday', example: 'senin', description: 'Hari (Indonesia/Inggris).' }],
       handler: ({ query }) => getSchedule(query.day || 'monday')
     },
     {
-      name: 'Genres',
-      method: 'GET',
-      path: '/genres',
-      group: 'Metadata',
-      description: 'Daftar seluruh genre yang tersedia.',
-      cache: 3600,
-      params: [],
+      name: 'Genres', method: 'GET', path: '/genres', group: 'Metadata',
+      description: 'Daftar semua genre anime.', cache: 3600, params: [],
       handler: () => getGenres()
     },
     {
-      name: 'By Genre',
-      method: 'GET',
-      path: '/genre/:slug',
-      group: 'Metadata',
-      description: 'Daftar anime berdasarkan genre tertentu dengan pagination.',
-      cache: 300,
+      name: 'By Genre', method: 'GET', path: '/genre/:slug', group: 'Metadata',
+      description: 'Daftar anime berdasarkan genre.', cache: 300,
       params: [
         { name: 'slug', in: 'path', type: 'string', required: true, example: 'action', description: 'Slug genre.' },
-        { name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Halaman hasil.' }
+        { name: 'page', in: 'query', type: 'number', required: false, default: 1, example: 1, description: 'Halaman.' }
       ],
       handler: ({ params, query }) => getByGenre(params.slug, parseInt(query.page, 10) || 1)
     }
   ],
 
-  actions: {
-    getLatest, getTopAnime, searchAnime, getAnimeDetail,
-    getEpisodeDetail, getSchedule, getGenres, getByGenre
-  }
+  actions: { getLatest, getTopAnime, searchAnime, getAnimeDetail, getEpisodeDetail, getSchedule, getGenres, getByGenre }
 };
