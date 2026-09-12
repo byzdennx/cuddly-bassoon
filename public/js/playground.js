@@ -1,42 +1,118 @@
 (function () {
   'use strict';
 
-  const UI = window.EpannUI;
+  const UI = window.EpannUI || {};
   const PREFIX = window.__API_PREFIX__ || '/api/v1';
+  const ORIGIN = window.__ORIGIN__ || location.origin;
+  const TIMEOUT_MS = 60000;
 
   const $ = (id) => document.getElementById(id);
-  const selEndpoint = $('pgEndpoint');
-  const boxParams = $('pgParams');
-  const boxDesc = $('pgDesc');
-  const inpUrl = $('pgUrl');
-  const btnSend = $('pgSend');
-  const btnReset = $('pgReset');
-  const linkOpen = $('pgOpen');
-  const preCurl = $('pgCurl');
-  const out = $('resOutput');
-  const empty = $('resEmpty');
-  const loader = $('resLoader');
 
+  /* ---------------- DOM ---------------- */
+  const selEndpoint = $('pgEndpoint');
+  const boxParams   = $('pgParams');
+  const boxDesc     = $('pgDesc');
+  const inpUrl      = $('pgUrl');
+  const btnSend     = $('pgSend');
+  const btnReset    = $('pgReset');
+  const linkOpen    = $('pgOpen');
+  const preCurl     = $('pgCurl');
+  const resCard     = $('pgResponseCard');
+  const out         = $('resOutput');
+  const outCode     = out.querySelector('code');
+  const empty       = $('resEmpty');
+  const loader      = $('resLoader');
+
+  /* ---------------- State ---------------- */
   let MANIFEST = [];
   let current = null;
   let abortController = null;
   let timeoutTimer = null;
-  const TIMEOUT_MS = 60000; // 60 detik
 
-  /* ---------------- load manifest ---------------- */
-  fetch(`${PREFIX}/endpoints`)
-    .then((r) => r.json())
-    .then((json) => {
+  /* =========================================================
+     HELPERS
+     ========================================================= */
+  const renderIcons = () => {
+    if (UI.renderIcons) UI.renderIcons();
+    else if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  };
+
+  const highlightJSON = (obj) => {
+    if (UI.highlightJSON) return UI.highlightJSON(obj);
+    const json = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+    return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+
+  const formatBytes = (n) => {
+    if (UI.formatBytes) return UI.formatBytes(n);
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1024 / 1024).toFixed(2) + ' MB';
+  };
+
+  function setChip(id, icon, text, cls) {
+    const el = $(id);
+    if (!el) return;
+    el.className = `res-chip ${cls || ''}`.trim();
+    el.innerHTML = `<i data-lucide="${icon}"></i> ${text}`;
+  }
+
+  /* =========================================================
+     STATE VISUAL (idle | loading | ok)
+     ========================================================= */
+  function showState(state) {
+    resCard.dataset.state = state;
+    const body = $('resBody');
+    if (body) body.dataset.state = state;
+
+    // ⬇️ empty hanya tampil saat idle
+    empty.hidden  = state !== 'idle';
+    loader.hidden = state !== 'loading';
+    out.hidden    = state !== 'ok';
+
+    renderIcons();
+  }
+
+  function setSendLoading(on) {
+    btnSend.disabled = !!on;
+    btnSend.dataset.state = on ? 'loading' : 'idle';
+    const label = btnSend.querySelector('.btn-label');
+    if (label) label.textContent = on ? 'Mengirim…' : 'Kirim Request';
+  }
+
+  function cancelInflight() {
+    if (abortController) {
+      try { abortController.abort('manual-cancel'); } catch {}
+      abortController = null;
+    }
+    if (timeoutTimer) {
+      clearTimeout(timeoutTimer);
+      timeoutTimer = null;
+    }
+  }
+
+  /* =========================================================
+     MANIFEST
+     ========================================================= */
+  async function loadManifest() {
+    try {
+      const res = await fetch(`${PREFIX}/endpoints`);
+      const json = await res.json();
       MANIFEST = json.result || [];
-      const wanted = new URLSearchParams(location.search).get('ep');
-      if (wanted && [...selEndpoint.options].some((o) => o.value === wanted)) {
-        selEndpoint.value = wanted;
-      }
-      buildForm();
-    })
-    .catch(() => {
+    } catch (err) {
       boxDesc.textContent = 'Gagal memuat manifest endpoint.';
-    });
+      return;
+    }
+
+    const wanted = new URLSearchParams(location.search).get('ep');
+    if (wanted && [...selEndpoint.options].some((o) => o.value === wanted)) {
+      selEndpoint.value = wanted;
+    }
+
+    buildForm();
+  }
 
   function findEndpoint(key) {
     for (const m of MANIFEST) {
@@ -46,22 +122,27 @@
     return null;
   }
 
-  /* ---------------- build param form ---------------- */
+  /* =========================================================
+     BUILD FORM
+     ========================================================= */
   function buildForm() {
     const found = findEndpoint(selEndpoint.value);
     if (!found) return;
     current = found;
 
     boxDesc.innerHTML =
-      `<b>${found.ep.name}</b> — ${found.ep.description}` +
-      `<br><span class="small muted">Modul: ${found.module.name} | Cache: ${found.ep.cache}s | Method: ${found.ep.method}</span>`;
+      `<b>${found.ep.name}</b> — ${found.ep.description || ''}` +
+      `<br><span class="small muted">Modul: ${found.module.name} | Cache: ${found.ep.cache ?? 0}s | Method: ${found.ep.method}</span>`;
 
     boxParams.innerHTML = '';
-    if (!found.ep.params.length) {
-      boxParams.innerHTML = '<p class="muted small"><i data-lucide="minus"></i> Endpoint ini tidak memerlukan parameter.</p>';
+    const params = found.ep.params || [];
+
+    if (!params.length) {
+      boxParams.innerHTML =
+        '<p class="muted small"><i data-lucide="minus"></i> Endpoint ini tidak memerlukan parameter.</p>';
     }
 
-    found.ep.params.forEach((p) => {
+    params.forEach((p) => {
       const wrap = document.createElement('label');
       wrap.className = 'field';
 
@@ -72,7 +153,7 @@
       wrap.appendChild(label);
 
       let field;
-      if (p.enum) {
+      if (Array.isArray(p.enum) && p.enum.length) {
         field = document.createElement('select');
         p.enum.forEach((v) => {
           const o = document.createElement('option');
@@ -80,7 +161,7 @@
           o.textContent = v;
           field.appendChild(o);
         });
-        field.value = p.example ?? p.enum[0];
+        field.value = p.example ?? p.default ?? p.enum[0];
       } else {
         field = document.createElement('input');
         field.type = p.type === 'number' ? 'number' : 'text';
@@ -102,12 +183,14 @@
       boxParams.appendChild(wrap);
     });
 
-    UI.renderIcons();
+    renderIcons();
     updateUrl();
     resetResponse();
   }
 
-  /* ---------------- compose url ---------------- */
+  /* =========================================================
+     URL BUILDER
+     ========================================================= */
   function composeUrl() {
     if (!current) return '';
     let path = current.ep.route;
@@ -128,186 +211,152 @@
 
   function updateUrl() {
     const rel = composeUrl();
-    const abs = location.origin + rel;
+    const abs = ORIGIN.replace(/\/$/, '') + rel;
     inpUrl.value = abs;
-    linkOpen.href = abs;
+    linkOpen.href = abs || '#';
     preCurl.textContent = `curl -s "${abs}"`;
   }
 
-  /* ---------------- reset response (PERBAIKAN UTAMA) ---------------- */
+  /* =========================================================
+     RESET RESPONSE
+     ========================================================= */
   function resetResponse() {
-    // 1. Batalkan request yang sedang berlangsung
-    if (abortController) {
-      abortController.abort();
-      abortController = null;
-    }
+    cancelInflight();
+    setSendLoading(false);
+    outCode.innerHTML = '';
+    showState('idle');
 
-    // 2. Hapus timeout timer
-    if (timeoutTimer) {
-      clearTimeout(timeoutTimer);
-      timeoutTimer = null;
-    }
-
-    // 3. Sembunyikan loader & output
-    out.hidden = true;
-    empty.hidden = false;
-    loader.hidden = true;
-    btnSend.disabled = false;
-
-    // 4. Reset semua chip status
     setChip('resStatus', 'circle-dashed', 'idle', '');
     setChip('resTime', 'timer', '0 ms', '');
     setChip('resSize', 'hard-drive', '0 B', '');
     setChip('resCache', 'database', '-', '');
-
-    UI.renderIcons();
   }
 
-  /* ---------------- send request ---------------- */
+  /* =========================================================
+     SEND
+     ========================================================= */
   async function send() {
     const url = composeUrl();
     if (!url) return;
 
-    // Batalkan request sebelumnya jika ada
-    if (abortController) abortController.abort();
-    abortController = new AbortController();
+    // Batalkan request sebelumnya
+    cancelInflight();
 
-    // Set timeout
+    // ⬇️⬇️⬇️ PALING PENTING: hide empty & show loader SEGERA,
+    // sebelum apapun yang bisa throw.
+    empty.hidden  = true;
+    loader.hidden = false;
+    out.hidden    = true;
+    resCard.dataset.state = 'loading';
+    const body = $('resBody');
+    if (body) body.dataset.state = 'loading';
+
+    // Baru siapkan controller & timeout
+    abortController = new AbortController();
     timeoutTimer = setTimeout(() => {
-      if (abortController) abortController.abort();
+      if (abortController) abortController.abort('timeout');
     }, TIMEOUT_MS);
 
-    // Siapkan UI loading
-    empty.hidden = true;
-    out.hidden = true;
-    loader.hidden = false;
-    btnSend.disabled = true;
-
-    setChip('resStatus', 'loader-circle', 'sending...', 'loading');
-    setChip('resTime', 'timer', '0 ms', '');
-    setChip('resSize', 'hard-drive', '0 B', '');
+    setSendLoading(true);
+    setChip('resStatus', 'loader-2', 'sending…', 'loading');
+    setChip('resTime', 'timer', '-', '');
+    setChip('resSize', 'hard-drive', '-', '');
     setChip('resCache', 'database', '-', '');
-    UI.renderIcons();
+    renderIcons();
 
     const t0 = performance.now();
+
     try {
       const res = await fetch(url, {
         headers: { Accept: 'application/json' },
-        signal: abortController.signal
+        signal: abortController.signal,
       });
 
       const text = await res.text();
       const ms = Math.round(performance.now() - t0);
 
-      // Parse JSON
       let parsed;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = { raw: text, note: 'Response bukan JSON valid' };
-      }
+      try { parsed = JSON.parse(text); }
+      catch { parsed = { raw: text }; }
 
-      // Tampilkan output
-      out.querySelector('code').innerHTML = UI.highlightJSON(parsed);
-      out.hidden = false;
+      outCode.innerHTML = highlightJSON(parsed);
+      showState('ok');
 
-      // Update chip status
-      setChip('resStatus', res.ok ? 'circle-check' : 'circle-x',
-        `${res.status} ${res.statusText}`, res.ok ? 'ok' : 'err');
+      setChip(
+        'resStatus',
+        res.ok ? 'circle-check' : 'circle-x',
+        `${res.status} ${res.statusText || ''}`.trim(),
+        res.ok ? 'ok' : 'err'
+      );
       setChip('resTime', 'timer', `${ms} ms`, '');
-      setChip('resSize', 'hard-drive', UI.formatBytes(new Blob([text]).size), '');
-      setChip('resCache', 'database',
-        parsed && parsed.cached ? 'HIT' :
-        parsed && parsed.error ? 'MISS (error)' : 'MISS', '');
-
+      setChip('resSize', 'hard-drive', formatBytes(new Blob([text]).size), '');
+      setChip(
+        'resCache',
+        'database',
+        parsed && parsed.cached ? 'HIT' : 'MISS',
+        parsed && parsed.cached ? 'ok' : ''
+      );
     } catch (err) {
-      // Handle error dengan spesifik
-      if (err.name === 'AbortError') {
-        // Timeout atau user batalkan
-        out.querySelector('code').innerHTML = UI.highlightJSON({
-          status: false,
-          error: 'Request timeout (>60 detik) atau dibatalkan.',
-          hint: 'Sumber mungkin lambat atau sedang down. Coba lagi nanti.'
-        });
-        out.hidden = false;
-        setChip('resStatus', 'circle-x', 'timeout / aborted', 'err');
-        setChip('resTime', 'timer', '60s+', '');
-        setChip('resSize', 'hard-drive', '0 B', '');
-        setChip('resCache', 'database', '-', '');
-      } else if (err instanceof TypeError && err.message.includes('fetch')) {
-        // Network error
-        out.querySelector('code').innerHTML = UI.highlightJSON({
-          status: false,
-          error: 'Koneksi jaringan gagal.',
-          hint: 'Cek koneksi internet atau coba lagi.'
-        });
-        out.hidden = false;
-        setChip('resStatus', 'circle-x', 'network error', 'err');
-      } else {
-        // Error umum
-        out.querySelector('code').innerHTML = UI.highlightJSON({
-          status: false,
-          error: err.message || 'Terjadi kesalahan tidak terduga.'
-        });
-        out.hidden = false;
-        setChip('resStatus', 'circle-x', 'error', 'err');
-      }
+      const isAbort = err && err.name === 'AbortError';
+      const isManual = isAbort && err.message === 'manual-cancel';
+      const isTimeout = isAbort && err.message === 'timeout';
+
+      // Kalau dibatalkan karena user ganti endpoint / reset → jangan render apa-apa
+      if (isManual) return;
+
+      const payload = isTimeout
+        ? {
+            status: false,
+            error: `Request timeout setelah ${TIMEOUT_MS / 1000} detik.`,
+            hint: 'Sumber mungkin sedang lambat. Coba lagi atau gunakan endpoint lain.',
+          }
+        : { status: false, error: (err && err.message) || 'Network error' };
+
+      outCode.innerHTML = highlightJSON(payload);
+      showState('ok');
+
+      setChip('resStatus', 'circle-x', isTimeout ? 'timeout' : 'network error', 'err');
+      setChip('resTime', 'timer', isTimeout ? `${TIMEOUT_MS / 1000}s+` : '-', '');
+      setChip('resSize', 'hard-drive', '0 B', '');
+      setChip('resCache', 'database', '-', '');
     } finally {
-      // Bersihkan
       if (timeoutTimer) {
         clearTimeout(timeoutTimer);
         timeoutTimer = null;
       }
       abortController = null;
-      loader.hidden = true;
-      btnSend.disabled = false;
-      UI.renderIcons();
+      setSendLoading(false);
+      renderIcons();
     }
   }
 
-  /* ---------------- helper chip ---------------- */
-  function setChip(id, icon, text, cls) {
-    const el = $(id);
-    el.className = 'res-chip' + (cls ? ' ' + cls : '');
-    el.innerHTML = `<i data-lucide="${icon}"></i> ${text}`;
-  }
-
-  /* ---------------- events ---------------- */
+  /* =========================================================
+     EVENTS
+     ========================================================= */
   selEndpoint.addEventListener('change', buildForm);
-  btnSend.addEventListener('click', send);
-  btnReset.addEventListener('click', () => {
+
+  btnSend.addEventListener('click', (e) => {
+    e.preventDefault();
+    send();
+  });
+
+  btnReset.addEventListener('click', (e) => {
+    e.preventDefault();
     buildForm();
-    resetResponse();
   });
 
   $('pgCopyUrl').addEventListener('click', () => {
+    if (!inpUrl.value) return;
     navigator.clipboard.writeText(inpUrl.value);
-    $('pgCopyUrl').innerHTML = '<i data-lucide="check"></i>';
-    UI.renderIcons();
-    setTimeout(() => {
-      $('pgCopyUrl').innerHTML = '<i data-lucide="copy"></i>';
-      UI.renderIcons();
-    }, 1200);
   });
 
   $('pgCopyRes').addEventListener('click', () => {
-    const text = out.querySelector('code').innerText;
-    navigator.clipboard.writeText(text);
-    $('pgCopyRes').innerHTML = '<i data-lucide="check"></i>';
-    UI.renderIcons();
-    setTimeout(() => {
-      $('pgCopyRes').innerHTML = '<i data-lucide="clipboard-copy"></i>';
-      UI.renderIcons();
-    }, 1200);
+    const txt = outCode.innerText || '';
+    if (!txt) return;
+    navigator.clipboard.writeText(txt);
   });
 
-  $('pgWrap').addEventListener('click', () => {
-    out.classList.toggle('wrap');
-    $('pgWrap').innerHTML = out.classList.contains('wrap')
-      ? '<i data-lucide="code-from-string"></i>'
-      : '<i data-lucide="wrap-text"></i>';
-    UI.renderIcons();
-  });
+  $('pgWrap').addEventListener('click', () => out.classList.toggle('wrap'));
 
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -316,9 +365,8 @@
     }
   });
 
-  // Handle sebelum unload (hindari request stuck)
-  window.addEventListener('beforeunload', () => {
-    if (abortController) abortController.abort();
-    if (timeoutTimer) clearTimeout(timeoutTimer);
-  });
+  /* =========================================================
+     INIT
+     ========================================================= */
+  loadManifest();
 })();

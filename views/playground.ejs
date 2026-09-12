@@ -39,9 +39,17 @@
       </label>
 
       <div class="pg-actions">
-        <button class="btn btn-primary" id="pgSend"><i data-lucide="send"></i><span>Kirim Request</span></button>
-        <a class="btn btn-outline" id="pgOpen" target="_blank" rel="noopener"><i data-lucide="external-link"></i><span>Buka Tab Baru</span></a>
-        <button class="btn btn-ghost" id="pgReset"><i data-lucide="rotate-ccw"></i><span>Reset</span></button>
+        <button class="btn btn-primary" id="pgSend">
+          <i data-lucide="send" class="ico-idle"></i>
+          <i data-lucide="loader-2" class="ico-loading spin"></i>
+          <span class="btn-label">Kirim Request</span>
+        </button>
+        <a class="btn btn-outline" id="pgOpen" target="_blank" rel="noopener">
+          <i data-lucide="external-link"></i><span>Buka Tab Baru</span>
+        </a>
+        <button class="btn btn-ghost" id="pgReset">
+          <i data-lucide="rotate-ccw"></i><span>Reset</span>
+        </button>
       </div>
 
       <div class="code-block small-block">
@@ -51,7 +59,7 @@
     </section>
 
     <!-- RESPONSE -->
-    <section class="card pg-response">
+    <section class="card pg-response" id="pgResponseCard" data-state="idle">
       <h3 class="card-title">
         <i data-lucide="file-json-2"></i> Response
         <span class="spacer"></span>
@@ -66,20 +74,34 @@
         <span class="res-chip" id="resCache"><i data-lucide="database"></i> -</span>
       </div>
 
-      <div class="res-body">
-        <div class="res-empty" id="resEmpty">
+      <div class="res-body" id="resBody" data-state="idle">
+        <!-- Empty state -->
+        <div class="res-empty" id="resEmpty" hidden>
           <i data-lucide="mouse-pointer-click"></i>
-          <p>Belum ada request. Pilih endpoint lalu tekan <b>Kirim Request</b>.</p>
+          <p></p>
         </div>
+
+        <!-- Loading state -->
+        <div class="res-loading" id="resLoader" hidden>
+          <div class="skeleton sk-line w-60"></div>
+          <div class="skeleton sk-line w-90"></div>
+          <div class="skeleton sk-line w-80"></div>
+          <div class="skeleton sk-block"></div>
+          <div class="skeleton sk-line w-70"></div>
+        </div>
+
+        <!-- Output -->
         <pre id="resOutput" class="json-view" hidden><code></code></pre>
-        <div class="loader" id="resLoader" hidden><span class="spinner"></span> Mengambil data dari sumber...</div>
       </div>
     </section>
   </div>
 </main>
 
 <%- include('partials/footer') %>
-<script>window.__API_PREFIX__ = "<%= config.apiPrefix %>"; window.__ORIGIN__ = "<%= origin %>";</script>
+<script>
+  window.__API_PREFIX__ = "<%= config.apiPrefix %>";
+  window.__ORIGIN__ = "<%= origin %>";
+</script>
 <script src="/js/playground.js"></script>
 </body>
 </html>
